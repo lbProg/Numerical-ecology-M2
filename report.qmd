@@ -1,0 +1,199 @@
+---
+title: Numerical ecology report
+author: Lucien Bastin
+date: 2025-11-07
+format: html
+knitr:
+  opts_chunk:
+    message: FALSE
+    warning: FALSE
+embed-resources: TRUE
+lightbox: TRUE
+toc: TRUE
+toc-location: right-body
+df-print: kable
+---
+
+# Libraries
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(here)
+library(readr)
+library(rnaturalearth)
+library(tidyr)
+library(viridis)
+```
+
+# Load data
+
+## Initial dataset
+
+Variables we have access to :
+-   Station
+-   Replicate
+-   Study year
+-   Latitude
+-   Longitude
+-   Salinity
+-   Species abundances
+
+```{r}
+data <- read_csv(here("Data/NBI_projects_data_florida.csv")) |>
+  select(
+    station,
+    infaunaReplicate,
+    latitude,
+    longitude,
+    depth,
+    collectionDate,
+    studyName,
+    salinity,
+    abundance,
+    taxon
+  ) |>
+  mutate(latitude = round(latitude, 2), longitude = round(longitude, 2)) |>
+  mutate(
+    year = substr(studyName, 1, 4),
+    ID = factor(paste(latitude, longitude, sep = "-")),
+    ID = as.integer(ID)
+  ) |>
+  mutate(sample = paste(year, ID, infaunaReplicate, sep = "-"))
+```
+
+Here's what the data table looks like :
+
+```{r}
+head(data)
+```
+
+## Select common stations for each year
+
+Let's look at a simple map of the stations :
+
+Here we group together the rows that have the same latitude and longitude and re-assign them a station number.
+
+```{r}
+stations <- data |>
+  select(ID, latitude, longitude, depth, studyName) |>
+  group_by(ID, studyName) |>
+  summarize(across(c(latitude, longitude, depth), mean))
+```
+
+Plot a map for each survey year :
+
+```{r}
+ggplot(stations, aes(x = longitude, y = latitude, label = ID)) +
+  geom_text() +
+  facet_wrap(vars(studyName)) +
+  theme_bw()
+```
+
+As we can see, some stations were only sampled for one or two survey years. I would like to look at temporal dynamics for the stations so I will only take into account stations that were sampled each year.
+
+Select stations that appear three times (once for each year) in the dataset :
+
+```{r}
+stations <- stations |>
+  group_by(ID) |>
+  filter(n() == 3)
+```
+
+We can plot another map to check if everything is good : 
+
+```{r}
+ggplot(stations, aes(x = longitude, y = latitude, label = ID)) +
+  geom_text() +
+  facet_wrap(vars(studyName)) +
+  theme_bw()
+```
+
+This looks OK, so we can filter the original dataset to only keep these stations :
+
+```{r}
+data <- data |>
+  filter(ID %in% stations$ID)
+```
+
+```{r}
+unique(sort(stations$ID))
+unique(sort(data$ID))
+```
+
+## Make community table
+
+I need a table of samples x species.
+
+```{r}
+data_abund <- data |>
+  select(sample, taxon, abundance) |>
+  pivot_wider(names_from = taxon, values_from = abundance, values_fill = 0)
+```
+
+```{r}
+head(data_abund[1:5])
+```
+
+## Make metadata table
+
+Coordinates, depth and salinity for each replicate at each station (and year).
+
+```{r}
+data_env <- data |>
+  select(sample, latitude, longitude, depth, salinity) |>
+  group_by(sample) |>
+  summarize(across(c(latitude, longitude, depth, salinity), mean)) |>
+  mutate(year = )
+```
+
+```{r}
+head(data_env)
+```
+
+# Exploratory data analysis
+
+## Map of the study site
+
+```{r}
+map_layer <- ne_countries(country = "united states of america", scale = "large")
+```
+
+```{r}
+ggplot(map_layer) +
+  geom_sf() +
+  coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
+  geom_point(data = data_env, aes(x = longitude, y = latitude, color = salinity)) +
+  theme_test()
+```
+
+## Environmental variables
+
+Take a look at depth and salinity for each station.
+
+### Station depths
+
+```{r}
+ggplot(map_layer) +
+  geom_sf() +
+  coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
+  geom_point(data = data_env, aes(x = longitude, y = latitude, color = depth), size = 2) +
+  scale_color_gradientn(colours = rev(ocean.haline(200)[100:200])) +
+  theme_test() +
+  guides(
+    color = guide_colorbar(reverse = TRUE)
+  )
+```
+
+```{r}
+ggplot(map_layer) +
+  geom_sf() +
+  coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
+  geom_point(data = data_env, aes(x = longitude, y = latitude, color = salinity), size = 2) +
+  scale_color_gradientn(colours = rev(ocean.haline(200)[100:200])) +
+  facet_wrap(vars())
+  theme_test() +
+  guides(
+    color = guide_colorbar(reverse = TRUE)
+  )
+```
