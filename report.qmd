@@ -20,6 +20,7 @@ df-print: kable
 library(dplyr)
 library(ggplot2)
 library(here)
+library(pals)
 library(readr)
 library(rnaturalearth)
 library(tidyr)
@@ -113,7 +114,9 @@ This looks OK, so we can filter the original dataset to only keep these stations
 
 ```{r}
 data <- data |>
-  filter(ID %in% stations$ID)
+  select(-c(year, station)) |>
+  filter(ID %in% stations$ID) |> 
+  separate_wider_delim(cols = sample, delim = "-", names = c("year", "station", "replicate"))
 ```
 
 ```{r}
@@ -123,12 +126,14 @@ unique(sort(data$ID))
 
 ## Make community table
 
-I need a table of samples x species.
+I need a table of samples x species. We can also pool all replicates together for each station and year.
 
 ```{r}
 data_abund <- data |>
-  select(sample, taxon, abundance) |>
-  pivot_wider(names_from = taxon, values_from = abundance, values_fill = 0)
+  select(year, station, replicate, taxon, abundance) |>
+  pivot_wider(names_from = taxon, values_from = abundance, values_fill = 0) |>
+  group_by(year, station) |>
+  summarize(across(-c(replicate), sum))
 ```
 
 ```{r}
@@ -137,14 +142,13 @@ head(data_abund[1:5])
 
 ## Make metadata table
 
-Coordinates, depth and salinity for each replicate at each station (and year).
+Coordinates, depth and salinity for each station each year.
 
 ```{r}
 data_env <- data |>
-  select(sample, latitude, longitude, depth, salinity) |>
-  group_by(sample) |>
-  summarize(across(c(latitude, longitude, depth, salinity), mean)) |>
-  mutate(year = )
+  select(year, station, replicate, latitude, longitude, depth, salinity) |>
+  group_by(year, station) |>
+  summarize(across(c(latitude, longitude, depth, salinity), mean))
 ```
 
 ```{r}
@@ -163,7 +167,7 @@ map_layer <- ne_countries(country = "united states of america", scale = "large")
 ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
-  geom_point(data = data_env, aes(x = longitude, y = latitude, color = salinity)) +
+  geom_point(data = data_env, aes(x = longitude, y = latitude)) +
   theme_test()
 ```
 
@@ -171,7 +175,7 @@ ggplot(map_layer) +
 
 Take a look at depth and salinity for each station.
 
-### Station depths
+### Depths
 
 ```{r}
 ggplot(map_layer) +
@@ -185,13 +189,30 @@ ggplot(map_layer) +
   )
 ```
 
+### Salinity by year
+
 ```{r}
 ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
   geom_point(data = data_env, aes(x = longitude, y = latitude, color = salinity), size = 2) +
-  scale_color_gradientn(colours = rev(ocean.haline(200)[100:200])) +
-  facet_wrap(vars())
+  scale_color_viridis_c() +
+  facet_wrap(vars(year)) +
+  theme_test() +
+  guides(
+    color = guide_colorbar(reverse = TRUE)
+  )
+```
+
+## Species richness
+
+```{r}
+ggplot(map_layer) +
+  geom_sf() +
+  coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
+  geom_point(data = data_env, aes(x = longitude, y = latitude, color = salinity), size = 2) +
+  scale_color_viridis_c() +
+  facet_wrap(vars(year)) +
   theme_test() +
   guides(
     color = guide_colorbar(reverse = TRUE)
