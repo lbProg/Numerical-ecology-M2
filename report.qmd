@@ -28,8 +28,14 @@ library(here)
 library(pals)
 library(readr)
 library(rnaturalearth)
+library(tibble)
 library(tidyr)
+library(vegan)
 library(viridis)
+```
+
+```{r}
+source(here("R/triplot.rda.R"))
 ```
 
 # Load data
@@ -272,19 +278,32 @@ ggarrange(plot_richness, plot_abundance)
 Split data tables in three (one for each year)
 
 ```{r}
-abund_1996 <- data_abund |> filter(year == "1996")
-abund_1997 <- data_abund |> filter(year == "1997")
-abund_2000 <- data_abund |> filter(year == "2000")
+abund_1996 <- data_abund |> filter(year == "1996") |> column_to_rownames("station")
+abund_1997 <- data_abund |> filter(year == "1997") |> column_to_rownames("station")
+abund_2000 <- data_abund |> filter(year == "2000") |> column_to_rownames("station")
 ```
 
 ```{r}
-env_1996 <- data_env |> filter(year == "1996")
-env_1997 <- data_env |> filter(year == "1997")
-env_2000 <- data_env |> filter(year == "2000")
+env_1996 <- data_env |> filter(year == "1996") |> select(c(3:6))
+env_1997 <- data_env |> filter(year == "1997") |> select(c(3:6))
+env_2000 <- data_env |> filter(year == "2000") |> select(c(3:6))
 ```
 
 ## Canonical analyses (RDA)
 
 ```{r}
+abund_1996_hel <- decostand(abund_1996[-1], "hellinger")
+```
 
+```{r}
+rda_1996 <- rda(abund_1996_hel ~ ., env_1996)
+anova(rda_1996)
+RsquareAdj(rda_1996)$adj.r.squared
+```
+
+```{r}
+spe.good <- goodness(rda_1996)
+sel.sp <- which(spe.good[, 2] >= 0.5)
+
+triplot.rda(rda_1996, select.spe = sel.sp)
 ```
