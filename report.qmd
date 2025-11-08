@@ -2,7 +2,10 @@
 title: Numerical ecology report
 author: Lucien Bastin
 date: 2025-11-07
-format: html
+format: 
+  html:
+    fig-width: 10
+    fig-height: 6
 knitr:
   opts_chunk:
     message: FALSE
@@ -18,7 +21,9 @@ df-print: kable
 
 ```{r}
 library(dplyr)
+library(GGally)
 library(ggplot2)
+library(ggpubr)
 library(here)
 library(pals)
 library(readr)
@@ -32,12 +37,19 @@ library(viridis)
 ## Initial dataset
 
 Variables we have access to :
+
 -   Station
+
 -   Replicate
+
 -   Study year
+
 -   Latitude
+
 -   Longitude
+
 -   Salinity
+
 -   Species abundances
 
 ```{r}
@@ -115,8 +127,12 @@ This looks OK, so we can filter the original dataset to only keep these stations
 ```{r}
 data <- data |>
   select(-c(year, station)) |>
-  filter(ID %in% stations$ID) |> 
-  separate_wider_delim(cols = sample, delim = "-", names = c("year", "station", "replicate"))
+  filter(ID %in% stations$ID) |>
+  separate_wider_delim(
+    cols = sample,
+    delim = "-",
+    names = c("year", "station", "replicate")
+  )
 ```
 
 ```{r}
@@ -148,7 +164,8 @@ Coordinates, depth and salinity for each station each year.
 data_env <- data |>
   select(year, station, replicate, latitude, longitude, depth, salinity) |>
   group_by(year, station) |>
-  summarize(across(c(latitude, longitude, depth, salinity), mean))
+  summarize(across(c(latitude, longitude, depth, salinity), mean)) |>
+  ungroup()
 ```
 
 ```{r}
@@ -204,17 +221,70 @@ ggplot(map_layer) +
   )
 ```
 
-## Species richness
+### Relationships between environmental variables
 
 ```{r}
-ggplot(map_layer) +
+ggpairs(
+  data_env,
+  aes(color = year, fill = year, alpha = 0.5),
+  columns = c(4, 3, 5, 6),
+  diag = list(continuous = "density")
+) +
+  theme_test()
+```
+
+## Species richness and total abundance
+
+```{r}
+data_env <- data_env |>
+  mutate(
+    richness = apply(data_abund[-c(1, 2)] > 0, 1, sum),
+    abundance = apply(data_abund[-c(1, 2)], 1, sum)
+  )
+```
+
+```{r}
+plot_richness <- ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
-  geom_point(data = data_env, aes(x = longitude, y = latitude, color = salinity), size = 2) +
+  geom_point(data = data_env, aes(x = longitude, y = latitude, color = richness), size = 2) +
   scale_color_viridis_c() +
-  facet_wrap(vars(year)) +
-  theme_test() +
-  guides(
-    color = guide_colorbar(reverse = TRUE)
-  )
+  facet_wrap(vars(year), nrow = 3) +
+  theme_test()
+```
+
+```{r}
+plot_abundance <- ggplot(map_layer) +
+  geom_sf() +
+  coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
+  geom_point(data = data_env, aes(x = longitude, y = latitude, color = log(abundance)), size = 2) +
+  scale_color_viridis_c() +
+  facet_wrap(vars(year), nrow = 3) +
+  theme_test()
+```
+
+```{r}
+ggarrange(plot_richness, plot_abundance)
+```
+
+# Community structure through the years
+
+Split data tables in three (one for each year)
+
+```{r}
+abund_1996 <- data_abund |> filter(year == "1996")
+abund_1997 <- data_abund |> filter(year == "1997")
+abund_2000 <- data_abund |> filter(year == "2000")
+```
+
+```{r}
+env_1996 <- data_env |> filter(year == "1996")
+env_1997 <- data_env |> filter(year == "1997")
+env_2000 <- data_env |> filter(year == "2000")
+```
+
+## Canonical analyses (RDA)
+
+```{r}
+
 ```
