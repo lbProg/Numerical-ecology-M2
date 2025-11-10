@@ -20,10 +20,12 @@ df-print: kable
 # Libraries
 
 ```{r}
+library(adespatial)
 library(dplyr)
 library(GGally)
 library(ggplot2)
 library(ggpubr)
+library(ggrepel)
 library(here)
 library(pals)
 library(readr)
@@ -285,7 +287,7 @@ abund_2000 <- data_abund |> filter(year == "2000") |> column_to_rownames("statio
 
 ```{r}
 env_1996 <- data_env |> filter(year == "1996") |> select(c(3:6))
-env_1997 <- data_env |> filter(year == "1997") |> select(c(3:6))
+env_1997 <- data_env |> filter(year == "1997") |> select(c(3:6)) |> select(-salinity)
 env_2000 <- data_env |> filter(year == "2000") |> select(c(3:6))
 ```
 
@@ -293,17 +295,64 @@ env_2000 <- data_env |> filter(year == "2000") |> select(c(3:6))
 
 ```{r}
 abund_1996_hel <- decostand(abund_1996[-1], "hellinger")
+abund_1997_hel <- decostand(abund_1997[-1], "hellinger")
+abund_2000_hel <- decostand(abund_2000[-1], "hellinger")
 ```
 
 ```{r}
 rda_1996 <- rda(abund_1996_hel ~ ., env_1996)
-anova(rda_1996)
-RsquareAdj(rda_1996)$adj.r.squared
+rda_1997 <- rda(abund_1997_hel ~ ., env_1997)
+rda_2000 <- rda(abund_2000_hel ~ ., env_2000)
 ```
 
 ```{r}
-spe.good <- goodness(rda_1996)
-sel.sp <- which(spe.good[, 2] >= 0.5)
+rda_text <- function(rda) {
+  anov_rda <- anova(rda)
+  rsq_rda <- RsquareAdj(rda)
+  paste0(
+    "F = ",
+    round(anov_rda[1, 3], 2),
+    "\n p-value = ",
+    round(anov_rda[1, 4], 3),
+    "\n adjusted R² = ",
+    round(rsq_rda$adj.r.squared, 3)
+  )
+}
+```
 
-triplot.rda(rda_1996, select.spe = sel.sp)
+```{r}
+sp_1996 <- which(goodness(rda_1996)[, 2] >= 0.5)
+sp_1997 <- which(goodness(rda_1997)[, 2] >= 0.5)
+sp_2000 <- which(goodness(rda_2000)[, 2] >= 0.5)
+```
+
+```{r}
+triplot.rda(rda_1996, select.spe = sp_1996)
+mtext(adj = 0.97, line = -3, rda_text(rda_1996))
+```
+
+```{r}
+triplot.rda(rda_1997, select.spe = sp_1997)
+mtext(adj = 0.97, line = -3, rda_text(rda_1997))
+```
+
+```{r}
+triplot.rda(rda_2000, select.spe = sp_2000)
+mtext(adj = 0.97, line = -3, rda_text(rda_2000))
+```
+
+# Spatial structures (db-MEM)
+
+Extract latitudes and longitudes of all stations, and compute distance matrix (same for each year).
+
+```{r}
+stations_xy <- subset(data_env, year == 1996)[c(3, 4)]
+stations_dist <- dist(stations_xy)
+```
+
+Perform db-MEM :
+
+```{r}
+dbmem <- dbmem(stations_dist)
+attributes(dbmem)$values
 ```
