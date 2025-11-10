@@ -155,9 +155,10 @@ I need a table of samples x species. We can also pool all replicates together fo
 ```{r}
 data_abund <- data |>
   select(year, station, replicate, taxon, abundance) |>
-  pivot_wider(names_from = taxon, values_from = abundance, values_fill = 0) |>
-  group_by(year, station) |>
-  summarize(across(-c(replicate), sum))
+  pivot_wider(names_from = taxon, values_from = abundance, values_fill = 0)
+  #  |>
+  # group_by(year, station) |>
+  # summarize(across(-c(replicate), sum))
 ```
 
 ```{r}
@@ -171,7 +172,7 @@ Coordinates, depth and salinity for each station each year.
 ```{r}
 data_env <- data |>
   select(year, station, replicate, latitude, longitude, depth, salinity) |>
-  group_by(year, station) |>
+  group_by(year, station, replicate) |>
   summarize(across(c(latitude, longitude, depth, salinity), mean)) |>
   ungroup()
 ```
@@ -355,4 +356,24 @@ Perform db-MEM :
 ```{r}
 dbmem <- dbmem(stations_dist)
 attributes(dbmem)$values
+```
+
+# Test for space-time interaction with MANOVA
+
+```{r}
+year <- gl(3, 54)
+station <- gl(18, 3, length = 162)
+helmert <- model.matrix(~ year*station, contrasts = list(year = "contr.helmert", station = "contr.helmert"))[, -1]
+```
+
+```{r}
+data_abund <- data_abund |>
+  arrange(year, as.numeric(station), replicate)
+
+data_env <- data_env |>
+  arrange(year, station, replicate)
+```
+
+```{r}
+interaction.rda <- rda(data_abund[-c(1, 2, 3)] ~ ., as.data.frame(helmert))
 ```
