@@ -379,5 +379,15 @@ interaction.rda <- rda(data_abund[-c(1, 2, 3)] ~ ., as.data.frame(helmert))
 ```
 
 ```{r}
-adonis2(data_abund[-c(1, 2, 3)] ~ year*station, met = "eucl", by = "term")
+adonis2(data_abund[-c(1, 2, 3)] ~ year*station, met = "eucl", by = "term") # Everything is significant
+```
+
+```{r}
+rda_spacetime <- rda(decostand(data_abund[-c(1, 2, 3)], "hellinger") ~ ., data_env[-c(3, 7)])
+sp_spacetime <- which(goodness(rda_spacetime)[, 2] >= 0.3)
+```
+
+```{r}
+triplot.rda(rda_spacetime, select.spe = sp_spacetime)
+mtext(adj = 0.97, line = -3, rda_text(rda_spacetime))
 ```
