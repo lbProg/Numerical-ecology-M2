@@ -377,3 +377,7 @@ data_env <- data_env |>
 ```{r}
 interaction.rda <- rda(data_abund[-c(1, 2, 3)] ~ ., as.data.frame(helmert))
 ```
+
+```{r}
+adonis2(data_abund[-c(1, 2, 3)] ~ year*station, met = "eucl", by = "term")
+```
