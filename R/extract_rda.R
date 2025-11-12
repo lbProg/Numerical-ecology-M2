@@ -113,12 +113,18 @@ extract_rda <- function(
   spe_sc <- spe_sc * fact_spe * mult_spe
   BP_sc <- BP_sc * fact_env * mult_arrow
 
-  # Return coordinates of everything
+  # Return coordinates of everything and additional info
+
+  anov <- anova(res_rda)
 
   list(
     site_scores = sit_sc,
     species_scores = spe_sc,
     env_scores = BP_sc,
-    centroids = centroids
+    centroids = centroids,
+    F = round(anov[1, 3], 2),
+    p_value = round(anov[1, 4], 3),
+    r_sq_adj = round(RsquareAdj(res_rda)$adj.r.squared, 3),
+    var_perc = round(summary(res_rda)$cont$importance[2, ] * 100, 2)
   )
 }
