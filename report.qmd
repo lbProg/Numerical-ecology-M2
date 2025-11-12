@@ -37,7 +37,7 @@ library(viridis)
 ```
 
 ```{r}
-source(here("R/triplot.rda.R"))
+source("R/extract_rda.R")
 ```
 
 # Load data
@@ -278,6 +278,8 @@ ggarrange(plot_richness, plot_abundance)
 
 # Space and time interaction model
 
+## Qualitative model
+
 I will perform a MANOVA to look at the effect of time, space and their interaction.
 
 Make the Helmert contrasts matrix for time and space as factors.
@@ -337,7 +339,6 @@ sp_spacetime <- which(goodness(rda_spacetime)[, 2] >= 0.35)
 ```
 
 ```{r}
-source("R/extract_rda.R")
 rda_coords <- extract_rda(rda_spacetime, select_spe = sp_spacetime)
 rda_coords$site_scores <- as.data.frame(rda_coords$site_scores) |>
   mutate(year = data_env$year, station = data_env$station)
@@ -398,18 +399,131 @@ ggplot() +
   theme_test()
 ```
 
-# Spatial structures (db-MEM)
+## Quantitative model
 
-Extract latitudes and longitudes of all stations, and compute distance matrix (same for each year).
+To further investigate the effect of space and time, I will consider them as quantitative variables. We can do this by taking the year value for time, and by using the latitude and longitude of the points for space.
+
+Add the year as a quantitative variable to the environment dataframe :
+
+```{r}
+data_env$year_quant <- as.numeric(data_env$year)
+```
+
+Perform forward selection to find the most parcimonious model :
+
+```{r}
+data_abund_hell <- decostand(data_abund_pooled[-c(1, 2)], "hellinger")
+forward.sel(data_abund_hell, data_env |> select(latitude, longitude, year_quant))
+```
+
+The best model has all three variables.
+
+```{r}
+rda_quant <- rda(data_abund_hell ~ ., data = data_env |> select(latitude, longitude, year_quant))
+anova(rda_quant)
+```
+
+Visualize the results :
+
+```{r}
+rda_coords <- extract_rda(rda_quant)
+```
+
+```{r}
+ggplot() +
+  geom_point(data = rda_coords$site_scores, aes(x = RDA1, y = RDA2)) +
+  geom_segment(
+    data = rda_coords$species_scores,
+    aes(
+      x = 0,
+      y = 0,
+      xend = RDA1,
+      yend = RDA2
+    ),
+    arrow = arrow(length = unit(.15, 'cm')),
+    color = "red",
+    lwd = 0.3,
+  ) +
+  geom_point(
+    data = rda_coords$env_scores,
+    aes(
+      x = RDA1,
+      y = RDA2
+    ),
+    color = "blue",
+    shape = 18
+  ) +
+  geom_text_repel(
+    data = rda_coords$env_scores,
+    aes(x = RDA1, y = RDA2, label = rownames(rda_coords$env_scores)),
+    color = "blue"
+  ) +
+  geom_text_repel(
+    data = rda_coords$species_scores,
+    aes(x = RDA1, y = RDA2, label = rownames(rda_coords$species_scores)),
+    color = "red",
+    size = 3
+  ) +
+  labs(
+    x = paste0("RDA1 (", rda_coords$var_perc[1], "%)"),
+    y = paste0("RDA2 (", rda_coords$var_perc[2], "%)")
+  ) +
+  annotate(
+    "text",
+    x = -0.5,
+    y = -0.5,
+    label = paste0(
+      "F = ",
+      rda_coords$F,
+      "\np-value = ",
+      rda_coords$p_value,
+      "\nadjusted R² = ",
+      rda_coords$r_sq_adj
+    )
+  ) +
+  theme_test()
+```
+
+## db-MEM analysis
+
+I will also compute a db-MEM to see if there are spatial structures that are more complex than just the x/y coordinates.
+
+Extract latitudes and longitudes of all stations, and get the db-MEMs :
 
 ```{r}
 stations_xy <- subset(data_env, year == 1996)[c(3, 4)]
-stations_dist <- dist(stations_xy)
+dbmem <- dbmem(stations_xy)
 ```
 
-Perform db-MEM :
+Add these MEMs to the env dataframe :
 
 ```{r}
-dbmem <- dbmem(stations_dist)
-attributes(dbmem)$values
+data_env <- cbind(data_env, as.data.frame(dbmem))
 ```
+
+Let's visualize the 7 MEMs :
+
+```{r}
+data_MEM <- data_env |>
+  pivot_longer(MEM1:MEM7, names_to = "MEM", values_to = "value")
+```
+
+```{r}
+ggplot(data_MEM, aes(x = longitude, y = latitude, size = abs(value), color = factor(sign(value)))) +
+  geom_point() +
+  facet_wrap(vars(MEM)) +
+  theme_test()
+```
+
+Before we perform db-MEM analysis, we have to check if there is a linear trend in the data :
+
+```{r}
+anova(rda(data_abund_hell, data_env[c(3, 4)]))
+```
+
+There is a significant linear trend, so we have to detrend the data before db-MEM.
+
+```{r}
+data_abund_detrended <- resid(lm(as.matrix(data_abund_hell) ~ ., data = data_env[c(3, 4)]))
+```
+
