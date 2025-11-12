@@ -113,8 +113,6 @@ extract_rda <- function(
   spe_sc <- spe_sc * fact_spe * mult_spe
   BP_sc <- BP_sc * fact_env * mult_arrow
 
-  print(to_plot)
-
   # Return coordinates of everything
 
   list(
