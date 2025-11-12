@@ -29,6 +29,7 @@ extract_rda <- function(
     fact <- target / longest
   }
   
+  centroids <- NULL
   n_sp <- length(res_rda$colsum)
   k <- length(res_rda$CCA$eig)
 
@@ -77,6 +78,13 @@ extract_rda <- function(
     colnames(centroids_sc1) <- colnames(centroids_sc2)
   }
   centroids_present <- TRUE
+  if (is.null(res_rda$CCA$centroids)) {
+      centroids_present <- FALSE
+      if (plot_centr | label_centr) {
+        plot_centr  <- FALSE
+        label_centr <- FALSE
+      }
+    }
 
   if (scaling == 1) {
     if (site_sc == "lc") {
