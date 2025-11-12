@@ -403,6 +403,8 @@
     } else {
       titre <- "Biplot of residuals of RDA - Scaling"
     }
+
+    summary <- summary(res.rda)
     
     plot(
       mat[, c(ax1, ax2)],
@@ -410,8 +412,8 @@
       main = paste(titre, scaling, "-", site.sc),
       xlim = c(lim[1, ax1], lim[2, ax1]),
       ylim = c(lim[1, ax2], lim[2, ax2]),
-      xlab = colnames(U.sc1)[ax1],
-      ylab = colnames(U.sc1)[ax2],
+      xlab = paste0(colnames(U.sc1)[ax1], " (", round(summary$cont$importance[2, 1] * 100, 2), "%)"),
+      ylab = paste0(colnames(U.sc1)[ax1], " (", round(summary$cont$importance[2, 2] * 100, 2), "%)"),
       asp = 1)
     abline(h = 0,
            v = 0,
