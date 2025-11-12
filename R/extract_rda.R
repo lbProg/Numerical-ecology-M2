@@ -101,23 +101,26 @@ extract_rda <- function(
 
   if (optimum) {
     fact_spe <- stretch(sit_sc, spe_sc, n = n)
-    quant_env_present <- TRUE
-    fact_env <- stretch(
-      sit_sc,
-      BP_sc[to_plot, ],
-      n = n
-    )
+    if (length(to_plot > 0)) {
+      fact_env <- stretch(
+        sit_sc,
+        BP_sc[to_plot, ],
+        n = n
+      )
+    }
   }
 
   spe_sc <- spe_sc * fact_spe * mult_spe
   BP_sc <- BP_sc * fact_env * mult_arrow
+
+  print(to_plot)
 
   # Return coordinates of everything
 
   list(
     site_scores = sit_sc,
     species_scores = spe_sc,
-    env_sc = BP_sc,
+    env_scores = BP_sc,
     centroids = centroids
   )
 }
