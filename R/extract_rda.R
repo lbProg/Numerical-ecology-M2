@@ -9,21 +9,21 @@ extract_rda <- function(
   plot_centr = TRUE,
   label_centr = TRUE
 ) {
-  'stretch' <- function(sites, mat, n) {
+  'stretch' <- function(sites, mat, ax1 = 1, ax2 = 2, n) {
     # Compute stretching factor for the species or environmental arrows
     # First, compute the longest distance to centroid for the sites
-    tmp1 <- rbind(rep(0, ncol(sites)), sites)
+    tmp1 <- rbind(c(0, 0), sites[, c(ax1, ax2)])
     D <- dist(tmp1)
     target <- max(D[1:n])
     # Then, compute the longest distance to centroid for the species or
     # environmental arrows
     if (is.matrix(mat)) {
       p <- nrow(mat)
-      tmp2 <- rbind(rep(0, ncol(mat)), mat)
+      tmp2 <- rbind(c(0, 0), mat[, c(ax1, ax2)])
       D <- dist(tmp2)
       longest <- max(D[1:p])
     } else {
-      tmp2 <- rbind(rep(0, ncol(mat)), mat)
+      tmp2 <- rbind(c(0, 0), mat[, c(ax1, ax2)])
       longest <- dist(tmp2)
     }
     fact <- target / longest
@@ -100,16 +100,14 @@ extract_rda <- function(
   }
 
   if (optimum) {
-    fact_spe <- stretch(sit_sc, spe_sc, n)
+    fact_spe <- stretch(sit_sc, spe_sc, n = n)
     quant_env_present <- TRUE
     fact_env <- stretch(
       sit_sc,
       BP_sc[to_plot, ],
-      n
+      n = n
     )
   }
-
-  print(fact_spe)
 
   spe_sc <- spe_sc * fact_spe * mult_spe
   BP_sc <- BP_sc * fact_env * mult_arrow
