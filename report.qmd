@@ -245,10 +245,16 @@ ggpairs(
 ## Species richness and total abundance
 
 ```{r}
+data_abund_pooled <- data_abund |>
+  group_by(year, station) |>
+  summarize(across(-1, sum))
+```
+
+```{r}
 data_env <- data_env |>
   mutate(
-    richness = apply(data_abund[-c(1, 2)] > 0, 1, sum),
-    abundance = apply(data_abund[-c(1, 2)], 1, sum)
+    richness = apply(data_abund_pooled[-c(1, 2)] > 0, 1, sum),
+    abundance = apply(data_abund_pooled[-c(1, 2)], 1, sum)
   )
 ```
 
@@ -303,8 +309,8 @@ Sort the dataframes so the stations are in order :
 data_abund <- data_abund |>
   arrange(year, as.numeric(station), replicate)
 
-data_env <- data_env |>
-  arrange(year, station, replicate)
+# data_env <- data_env |>
+#   arrange(year, station, replicate)
 ```
 
 Run the MANOVA :
@@ -327,10 +333,6 @@ Here we can see that space, time and their interaction all have a significant ef
 We can represent these results with an RDA (here we pool replicates togeteher) :
 
 ```{r}
-data_abund_pooled <- data_abund |>
-  group_by(year, station) |>
-  summarize(across(-1, sum))
-
 rda_spacetime <- rda(
   decostand(data_abund_pooled[-c(1, 2)], "hellinger") ~ .,
   data_env[c(1, 2)] # Only keep year and station
@@ -426,7 +428,8 @@ anova(rda_quant)
 Visualize the results :
 
 ```{r}
-rda_coords <- extract_rda(rda_quant)
+sp_quant <- which(goodness(rda_quant)[, 2] >= 0.35)
+rda_coords <- extract_rda(rda_quant, select_spe = sp_quant)
 ```
 
 ```{r}
@@ -444,14 +447,17 @@ ggplot() +
     color = "red",
     lwd = 0.3,
   ) +
-  geom_point(
+  geom_segment(
     data = rda_coords$env_scores,
     aes(
-      x = RDA1,
-      y = RDA2
+      x = 0,
+      y = 0,
+      xend = RDA1,
+      yend = RDA2
     ),
+    arrow = arrow(length = unit(.15, 'cm')),
     color = "blue",
-    shape = 18
+    lwd = 0.3,
   ) +
   geom_text_repel(
     data = rda_coords$env_scores,
@@ -483,6 +489,10 @@ ggplot() +
   ) +
   theme_test()
 ```
+
+Here we can better see the separation between the years 1996, 1997 and 2000. However, this model and this representation are not better than the qualitative model.
+
+But from this RDA it looks like there is a continuous shift in the community between 1996 and 2000. We could imagine two sets of points for 1998 and 1999 that would fill the empty space in the plot.
 
 ## db-MEM analysis
 
@@ -527,3 +537,58 @@ There is a significant linear trend, so we have to detrend the data before db-ME
 data_abund_detrended <- resid(lm(as.matrix(data_abund_hell) ~ ., data = data_env[c(3, 4)]))
 ```
 
+Now we can run the db-MEM analysis :
+
+```{r}
+dbmem_rda <- rda(data_abund_detrended ~ ., data_env |> select(MEM1:MEM7))
+anova(dbmem_rda)
+```
+
+```{r}
+RsquareAdj(dbmem_rda)$adj.r.squared
+```
+
+Run forward selection on the dbmem variables :
+
+```{r}
+forward.sel(data_abund_detrended, data_env |> select(MEM1:MEM7))
+```
+
+The best model has MEM1, MEM3 and MEM6. Now we can do a model with only these MEMs :
+
+```{r}
+dbmem_rda_2 <- rda(data_abund_detrended ~ ., data_env |> select(MEM1, MEM3, MEM6))
+anova(dbmem_rda_2)
+```
+
+Let's check which axes of this RDA are significant :
+
+```{r}
+anova(dbmem_rda_2, by = "axis")
+```
+
+RDA1 and RDA2 are significant (for $\alpha = 0.05$). RDA3 is not significant by a tiny amount.
+
+Extract the canonical model scores :
+
+```{r}
+rda_2_axes <- scores(dbmem_rda_2, choices = c(1, 2), display = "lc", scaling = 1)
+```
+
+Plot the significant RDA axes :
+
+```{r}
+data_dbmem_rda <- data_env |>
+  bind_cols(rda_2_axes) |>
+  select(latitude, longitude, RDA1, RDA2) |>
+  pivot_longer(RDA1:RDA2, names_to = "axis", values_to = "value")
+```
+
+```{r}
+ggplot(data_dbmem_rda, aes(x = longitude, y = latitude, size = abs(value), color = sign(value))) +
+  geom_point() +
+  facet_wrap(vars(axis)) +
+  theme_bw()
+```
+
+These two spatial structures explain a significant part of the variance of the community composition.
