@@ -534,13 +534,13 @@ ggplot(data_MEM, aes(x = longitude, y = latitude, size = abs(value), color = fac
 Before we perform db-MEM analysis, we have to check if there is a linear trend in the data :
 
 ```{r}
-anova(rda(data_abund_hell, data_env[c(3, 4)]))
+anova(rda(data_abund_hell[1:18, ], data_env[c(3, 4)]))
 ```
 
 There is a significant linear trend, so we have to detrend the data before db-MEM.
 
 ```{r}
-data_abund_detrended <- resid(lm(as.matrix(data_abund_hell) ~ ., data = data_env[c(3, 4)]))
+data_abund_detrended <- resid(lm(as.matrix(data_abund_hell[1:18, ]) ~ ., data = data_env[c(3, 4)]))
 ```
 
 Now we can run the db-MEM analysis :
@@ -611,13 +611,13 @@ The db-MEM analysis with three dm-MEMs explains 5.97% of the variance of the dat
 The two represented spatial structures explain 5.97 * 0.79 = 4.71% of the total variance (not great).
 
 ```{r}
-quickmem <- quickMEM(data_abund_hell[1:18, ], as.matrix(stations_xy, nrow = 18))
+hell_2000 <- decostand(data_abund_pooled[37:54, -c(1, 2)], "hellinger")
+quickmem <- quickMEM(data_abund_hell, as.matrix(data_env[c(3, 4)]))
 ```
 
 ```{r}
 mem_dat <- cbind(MEM1 = quickmem$dbMEM_red_model$MEM1, stations_xy)
 ```
-
 
 ```{r}
 ggplot(mem_dat, aes(x = longitude, y = latitude, size = abs(MEM1), color = sign(MEM1))) +
