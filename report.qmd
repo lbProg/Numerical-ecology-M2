@@ -282,6 +282,12 @@ plot_abundance <- ggplot(map_layer) +
 ggarrange(plot_richness, plot_abundance)
 ```
 
+## Aims of this study
+
+How does the spatial structure of the Florida Bay macrobenthic communities evolve through time ?
+Can we consider the Eastern stations (with the lowest salinity) and the rest of the Bay as two different ecosystems ?
+Has there been a shift in community composition between 1996 and 2000 ?
+
 # Space and time interaction model
 
 ## Qualitative model
@@ -603,3 +609,17 @@ ggplot(data_dbmem_rda, aes(x = longitude, y = latitude, size = abs(value), color
 
 The db-MEM analysis with three dm-MEMs explains 5.97% of the variance of the data.
 The two represented spatial structures explain 5.97 * 0.79 = 4.71% of the total variance (not great).
+
+```{r}
+quickmem <- quickMEM(data_abund_hell[1:18, ], as.matrix(stations_xy, nrow = 18))
+```
+
+```{r}
+mem_dat <- cbind(MEM1 = quickmem$dbMEM_red_model$MEM1, stations_xy)
+```
+
+
+```{r}
+ggplot(mem_dat, aes(x = longitude, y = latitude, size = abs(MEM1), color = sign(MEM1))) +
+  geom_point()
+```
