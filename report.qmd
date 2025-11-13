@@ -548,6 +548,12 @@ anova(dbmem_rda)
 RsquareAdj(dbmem_rda)$adj.r.squared
 ```
 
+We can also look at the unadjusted R² of each db-MEM variable (using function `scalog()` of the NEwR book) :
+
+```{r}
+scalog(dbmem_rda)
+```
+
 Run forward selection on the dbmem variables :
 
 ```{r}
@@ -561,13 +567,17 @@ dbmem_rda_2 <- rda(data_abund_detrended ~ ., data_env |> select(MEM1, MEM3, MEM6
 anova(dbmem_rda_2)
 ```
 
+```{r}
+RsquareAdj(dbmem_rda_2)$adj.r.squared
+```
+
 Let's check which axes of this RDA are significant :
 
 ```{r}
 anova(dbmem_rda_2, by = "axis")
 ```
 
-RDA1 and RDA2 are significant (for $\alpha = 0.05$). RDA3 is not significant by a tiny amount.
+RDA1 and RDA2 are significant (for $\alpha = 0.05$). RDA3 sits close to the significance threshold. Its significance changes depending on runs of the anova. However, when running the anova with 9999 permutations (instead of the default 999), its p-value is close to 0.52. I will therefore consider it as non-significant.
 
 Extract the canonical model scores :
 
@@ -591,4 +601,5 @@ ggplot(data_dbmem_rda, aes(x = longitude, y = latitude, size = abs(value), color
   theme_bw()
 ```
 
-These two spatial structures explain a significant part of the variance of the community composition.
+The db-MEM analysis with three dm-MEMs explains 5.97% of the variance of the data.
+The two represented spatial structures explain 5.97 * 0.79 = 4.71% of the total variance (not great).
