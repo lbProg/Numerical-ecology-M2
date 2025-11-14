@@ -21,6 +21,7 @@ df-print: kable
 
 ```{r}
 library(adespatial)
+library(cluster)
 library(dplyr)
 library(GGally)
 library(ggplot2)
@@ -567,3 +568,143 @@ anova(dbmem_00)
 ```
 
 None of the models are significant, so we can't proceed to selection of the MEMs. The db-MEM analysis was unsuccessful and can't help us investigate spatial structures.
+
+## Clustering analysis
+
+As a backup, we can perform a clustering of the stations each year. This will reveal which stations have similar communities and might reveal spatial structures.
+
+There are multiple ways to cluster the stations together. We can compute the cophenetic correlation coefficient to find out which one is the "best".
+
+```{r}
+methods = c("single", "complete", "average", "ward.D", "ward.D2")
+```
+
+```{r}
+cophenetic_cors <- data.frame(expand.grid(
+  year = c("1996", "1997", "2000"),
+  method = methods
+)) |>
+  arrange(year, method)
+```
+
+```{r}
+hell_dist_year <- function(data, year) {
+  # Takes year as 1/2/3 and returns the hellinger distance between the stations
+  vegdist(
+    data[(1 + 18 * (year - 1)):(18 + 18 * (year - 1)), ],
+    "euclidean"
+  )
+}
+```
+
+```{r}
+coph <- c()
+
+for (year in 1:3) {
+  # For each year, compute the hellinger distance matrix between sites
+  dist <- hell_dist_year(data_abund_hell, year)
+
+  for (m in 1:length(methods)) {
+    # For each clustering method, compute the cophenetic correlation coefficient
+    clust <- hclust(
+      dist,
+      method = methods[m]
+    )
+
+    coph <- append(coph, round(cor(dist, cophenetic(clust)), 2))
+  }
+}
+
+cophenetic_cors$coph <- coph
+```
+
+```{r}
+cophenetic_cors
+```
+
+The average clustering gives the best cophenetic correlation for every year. We can check what it looks like :
+
+```{r}
+hell_dist_96 <- vegdist(data_abund_hell[1:18, ], "euclidean")
+hell_dist_97 <- vegdist(data_abund_hell[19:36, ], "euclidean")
+hell_dist_00 <- vegdist(data_abund_hell[37:54, ], "euclidean")
+```
+
+```{r}
+clust_96 <- hclust(hell_dist_96, method = "average")
+clust_97 <- hclust(hell_dist_97, method = "average")
+clust_00 <- hclust(hell_dist_00, method = "average")
+```
+
+```{r}
+par(mfrow = c(1, 3))
+plot(clust_96, labels = data_env$station[1:18])
+plot(clust_97, labels = data_env$station[1:18])
+plot(clust_00, labels = data_env$station[1:18])
+```
+
+Choose the best number of clusters using the silhouette indicator :
+
+```{r}
+silhouettes_96 <- rep(0, 18)
+for (i in 2:(length(silhouettes_96) - 1)) {
+  s <- summary(silhouette(cutree(clust_96, k = i), hell_dist_96))$avg.width
+  silhouettes_96[i] <- s
+}
+
+plot(silhouettes_96, type = "h")
+```
+
+```{r}
+silhouettes <- data.frame(expand.grid(
+  year = c("1996", "1997", "2000"),
+  k = seq(2, 17)
+)) |>
+  arrange(year, k)
+```
+
+```{r}
+sil <- c()
+
+for (year in 1:3) {
+  dist <- hell_dist_year(data_abund_hell, year)
+  
+  for (k in 2:17) {
+    cut <- cutree(c(clust_96, clust_97, clust_00)[1 + 7 * (year - 1)], k = k)
+    s <- summary(silhouette(cut, dist))$avg.width
+    sil <- append(sil, s)
+  }
+}
+
+silhouettes$silhouette <- sil
+```
+
+```{r}
+ggplot(silhouettes, aes(x = k, y = sil)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  facet_wrap(vars(year)) +
+  theme_test()
+```
+
+According to the silhouette metric, the best number of clusters are 4 for 1996 and 1997, and 7 for 2000.
+
+Let's represent these clusters on a map of the stations :
+
+```{r}
+data_clust <- data_env |>
+  select(year, station, longitude, latitude) |>
+  mutate(
+    cluster = c(
+      unname(cutree(clust_96, 4)),
+      unname(cutree(clust_97, 4)),
+      unname(cutree(clust_00, 7))
+    )
+  )
+```
+
+```{r}
+ggplot(data_clust, aes(x = longitude, y = latitude, color = factor(cluster))) +
+  geom_point(size = 3) +
+  facet_wrap(vars(year)) +
+  theme_test()
+```
