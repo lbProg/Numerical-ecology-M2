@@ -34,6 +34,7 @@ library(here)
 library(pals)
 library(readr)
 library(rnaturalearth)
+library(stringr)
 library(tibble)
 library(tidyr)
 library(vegan)
@@ -164,13 +165,26 @@ I need a table of samples x species.
 data_abund <- data |>
   select(year, station, replicate, taxon, abundance) |>
   pivot_wider(names_from = taxon, values_from = abundance, values_fill = 0)
-  #  |>
-  # group_by(year, station) |>
-  # summarize(across(-c(replicate), sum))
 ```
 
 ```{r}
-head(data_abund[1:5])
+head(data_abund[1:7])
+```
+
+As we can see, there are some columns that refer to taxonomical levels above the species. I would prefer all my columns to be species or genuses, but here we have families and even orders. This makes me not want to decrease the taxonomic resolution because we would loose a LOT of information.
+
+I will therefore remove all of those low-resolution taxonomic entries to only keep species. They all have in common an "(LPIL)" written after their name. We can use this to detect and remove them from the dataframe.
+
+```{r}
+sp <- colnames(data_abund[-c(1:3)])
+regex <- "\\b[A-Z][a-z]* \\(LPIL\\)"
+
+data_abund <- data_abund |>
+  select(year, station, replicate, sp[str_detect(sp, regex) == FALSE])
+```
+
+```{r}
+head(data_abund[1:7])
 ```
 
 ## Make metadata table
