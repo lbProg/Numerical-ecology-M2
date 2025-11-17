@@ -23,6 +23,7 @@ df-print: kable
 library(adespatial)
 library(cluster)
 library(dplyr)
+library(ecotraj)
 library(GGally)
 library(ggplot2)
 library(ggpubr)
@@ -39,6 +40,10 @@ library(viridis)
 
 ```{r}
 source("R/extract_rda.R")
+```
+
+```{r}
+sessionInfo()
 ```
 
 # Load data
@@ -707,4 +712,78 @@ ggplot(data_clust, aes(x = longitude, y = latitude, color = factor(cluster))) +
   geom_point(size = 3) +
   facet_wrap(vars(year)) +
   theme_test()
+```
+
+The clusterings may reveal spatial structures (since stations close to eachother tend to be in the same clusters).
+
+# Evolution of the communities through time
+
+To define ecological trajectories, we first need the entities (stations) and times (years).
+
+```{r}
+data_env$station
+data_env$year
+```
+
+For the distance matrix, we will use the hellinger distance between the sites
+
+```{r}
+data_abund_hell <- decostand(data_abund_pooled[-c(1, 2)], "hellinger")
+dist_hell <- vegdist(data_abund_hell, "euclidean")
+```
+
+Make a color palette : 
+
+```{r}
+station_cols <- data.frame(
+  station = unique(data_env$station),
+  col = pals::alphabet(18)
+)
+```
+
+Now we can define the trajectories using package `ecotraj`.
+
+```{r}
+trajs <- defineTrajectories(
+  dist_hell,
+  sites = data_env$station,
+  times = as.numeric(data_env$year)
+)
+```
+
+We can represent the trajectories in 2D space using a PCoA :
+
+```{r}
+pcoa <- trajectoryPCoA(trajs, traj.colors = station_cols$col, lwd = 2)
+station_cols <- station_cols |> arrange(as.numeric(station))
+legend(
+  x = 0.6,
+  y = 0.45,
+  col = station_cols$col,
+  legend = unique(station_cols$station),
+  bty = "n",
+  lty = 1,
+  lwd = 3,
+  y.intersp = 0.5
+)
+```
+
+Compute trajectory metrics :
+
+```{r}
+metrics <- trajectoryMetrics(trajs) |>
+  mutate(cluster = )
+  pivot_longer(length:internal_variance, names_to = "metric", values_to = "value") |>
+  mutate(trajectory = factor(trajectory, levels = order(as.numeric(trajectory))))
+```
+
+```{r}
+ggplot(metrics, aes(x = trajectory, y = value)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(vars(metric), scales = "free") +
+  theme_test()
+```
+
+```{r}
+trajectoryConvergence(trajs, type = "pairwise.symmetric") # Doesn't work with 3 points ?
 ```
