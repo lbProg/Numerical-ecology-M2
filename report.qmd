@@ -45,10 +45,6 @@ library(viridis)
 source("R/extract_rda.R")
 ```
 
-```{r}
-sessionInfo()
-```
-
 # Load data
 
 ## Initial dataset
@@ -67,7 +63,7 @@ Variables we have access to :
 
 -   Salinity
 
--   Species abundances
+-   Species abundances of benthic macrofauna
 
 ```{r}
 data <- read_csv(here("Data/NBI_projects_data_florida.csv")) |>
@@ -351,9 +347,12 @@ Total abundance doesn't really show any pattern.
 
 ## Aims of this study
 
-How does the spatial structure of the Florida Bay macrobenthic communities evolve through time ? 
-Can we observe different communities in the northeast stations (with the lowest salinity) and the rest of the Bay ?
-Has there been a shift in community composition between 1996 and 2000 ?
+As we saw, the stations in the Florida Bay present large salinity differences. This could strolngly affect the benthic community composition. We could expect to observe some spatial differences in the Bay.
+
+This study will attempt to answer the following questions :
+  - How does the spatial structure of the Florida Bay macrobenthic communities evolve through time ?
+  - Can we observe different communities in the northeast stations (with the lowest salinity) and the rest of the Bay ?
+  - Has there been a shift in community composition between 1996 and 2000, and if yes, has it been the same everywhere ?
 
 # Space and time interaction model
 
@@ -416,6 +415,8 @@ rda_coords$site_scores <- as.data.frame(rda_coords$site_scores) |>
 ```
 
 ```{r}
+#| code-fold: true
+
 ggplot() +
   geom_point(data = rda_coords$site_scores, aes(x = RDA1, y = RDA2, color = year)) +
   geom_segment(
@@ -470,17 +471,15 @@ ggplot() +
   theme_test()
 ```
 
-The first two RDA axes represents 19% of the total variance of the data. We can see that for 1996 and 1997, the sites are really close to eachother.
+The first two RDA axes represents 19% of the total variance of the data.
 
-The RDA1 axis shows time differences between the years 1996-1997 and 2000. We can see that the relative abundance of *Oligochaeta* has decreased in 2000.
+We can observe three groups of stations : a group of "low" stations in the bottom right quadrant, the northeast stations (24, 25, 29, 32 and 34) in the top right quadrant, and some "middle" stations on the left of the plot.
 
-We can also see that for each year, two groups of stations appear : the stations 24, 25, 29, 32 and 34 (northeast stations) and the others. This could indicate that the northeast stations harbor different communities compared to the rest of the Florida Bay. For instance, these stations show a high relative abundance of the species *Phascolion strombi*, while the other stations show a low relative abundance for this species.
-
-Furthermore, unlike the *Oliogchaete* whose relative abundance decreases in time, *P. strombi* is always associated to the northeast stations, no matter the year.
+This could indicate that the northeast stations harbor different communities compared to the rest of the Florida Bay. For instance, these stations show a high relative abundance of the species *Phascolion strombi*, while the other stations show a low relative abundance for this species.
 
 ## Quantitative model
 
-To further investigate the effect of space and time, I will consider them as quantitative variables. We can do this by taking the year value for time, and by using the latitude and longitude of the points for space.
+To further investigate the effect of space and time, I will consider them as quantitative variables. We can do this by taking the year value for time, and by using the latitude and longitude of the points for space. I will also use the depth variable.
 
 Add the year as a quantitative variable to the environment dataframe :
 
@@ -495,13 +494,19 @@ data_abund_hell <- decostand(data_abund_pooled[-c(1, 2)], "hellinger")
 ```
 
 ```{r}
-forward.sel(data_abund_hell, data_env |> select(latitude, longitude, year_quant))
+forward.sel(
+  data_abund_hell,
+  data_env |> select(latitude, longitude, year_quant, depth)
+)
 ```
 
-The best model has all three variables.
+The best model has all four variables.
 
 ```{r}
-rda_quant <- rda(data_abund_hell ~ ., data = data_env |> select(latitude, longitude, year_quant))
+rda_quant <- rda(
+  data_abund_hell ~ .,
+  data = data_env |> select(latitude, longitude, year_quant)
+)
 anova(rda_quant)
 ```
 
@@ -515,8 +520,13 @@ rda_coords$site_scores <- as.data.frame(rda_coords$site_scores) |>
 ```
 
 ```{r}
+#| code-fold: true
+
 ggplot() +
-  geom_point(data = rda_coords$site_scores, aes(x = RDA1, y = RDA2, color = year)) +
+  geom_point(
+    data = rda_coords$site_scores,
+    aes(x = RDA1, y = RDA2, color = year)
+  ) +
   geom_segment(
     data = rda_coords$species_scores,
     aes(
@@ -552,6 +562,14 @@ ggplot() +
     color = "red",
     size = 3
   ) +
+  geom_text_repel(
+    data = rda_coords$site_scores,
+    aes(
+      x = RDA1,
+      y = RDA2,
+      label = rep(data_env$station[1:18], 3)
+    )
+  ) +
   labs(
     x = paste0("RDA1 (", rda_coords$var_perc[1], "%)"),
     y = paste0("RDA2 (", rda_coords$var_perc[2], "%)")
@@ -572,9 +590,9 @@ ggplot() +
   theme_test()
 ```
 
-Here we can better see the separation between the years 1996, 1997 and 2000. However, this model and this representation are not better than the qualitative model.
+The first two RDA axes account for 13% of the total variance of the data.
 
-But from this RDA it looks like there is a continuous shift in the community between 1996 and 2000. We could imagine two sets of points for 1998 and 1999 that would fill the empty space in the plot.
+Here we can asses the impact of time on the communities. In 2000, the communities presented a highr relative abundance of *C. lyra* and *E. nebulosa*, as well as a lower relative abundance of *Paraeupolymnia sp. A* compared to 1996 and 1997. However, some species were not affected by time such as *S. pectinata* and *S. cornuta*, that were always at high relative abundance in the "low" stations (1, 5, 6, 7, 8, 11, 13, 14).
 
 ## db-MEM analysis
 
@@ -762,7 +780,7 @@ ggplot(silhouettes, aes(x = k, y = sil)) +
   theme_test()
 ```
 
-According to the silhouette metric, the best number of clusters are 4 for 1996 and 1997, and 7 for 2000.
+According to the silhouette metric, the best number of clusters is always two. However, I would like a bit more precision so I will use the next best silhouette values (which aren't that much lower). Thus we have 8, 4 and 5 clusters for the years 1996, 1997 and 2000 respectively.
 
 Let's represent these clusters on a map of the stations :
 
@@ -771,9 +789,9 @@ data_clust <- data_env |>
   select(year, station, longitude, latitude) |>
   mutate(
     cluster = c(
-      unname(cutree(clust_96, 4)),
+      unname(cutree(clust_96, 8)),
       unname(cutree(clust_97, 4)),
-      unname(cutree(clust_00, 7))
+      unname(cutree(clust_00, 5))
     )
   )
 ```
@@ -797,8 +815,8 @@ ggplot(map_layer) +
 ```
 
 The clusterings may reveal spatial structures (since stations close to eachother tend to be in the same clusters).
-For instance, stations [29, 32, 34], [7, 8], [20, 23, 26, 28], [1, 5, 6, 14] and [11, 18] are always in the same cluster each year.
-The northeast stations (29, 32, 34) therefore present different communities compared to the rest of the Florida Bay.
+For instance, stations [29, 32, 34], [7, 8], [23, 26, 28] and [1, 5, 6, 14] are always in the same cluster each year.
+The northeast stations (29, 32, 34) could therefore present different communities compared to the rest of the Florida Bay.
 
 # Evolution of the communities through time
 
@@ -839,19 +857,22 @@ pcoa <- trajectoryPCoA(trajs, traj.colors = station_cols$col, lwd = 2, length = 
 text(pcoa$points[1:18, 1], pcoa$points[1:18, 2], unique(data_env$station))
 station_cols <- station_cols |> arrange(as.numeric(station))
 legend(
-  x = 0.6,
-  y = 0.45,
+  x = 0.7,
+  y = 0.5,
   col = station_cols$col,
   legend = unique(station_cols$station),
   bty = "n",
   lty = 1,
   lwd = 3,
-  y.intersp = 0.6
+  y.intersp = 0.8
 )
 ```
 
-The first two PCoA axes account for 20% of the total variance of the data. All trajectories follow the same pattern : a shift on PCoA2 (negative or positive) followed by a shift towards positive values of PCoA1.
-We can also see that the trajectories of the northeast stations (24, 25, 29, 32, 34) are separated from the others on the PCoA space, but they follow the same general trend.
+The first two PCoA axes account for 21% of the total variance of the data. Most trajectories seem to follow the same pattern : they move towards negative values of PCoA1.
+
+However, some trajectories like those of stations 5, 11, 14, 23 and 26 show a move towards positive values of PCoA1 between 1997 and 2000
+
+We can also see that the trajectories of the northeast stations (24, 25, 29, 32, 34) are separated from the others on the PCoA space, but they follow the same general movement.
 
 Compute trajectory metrics :
 
@@ -868,8 +889,8 @@ ggplot(metrics, aes(x = trajectory, y = value)) +
   theme_test()
 ```
 
-```{r}
-trajectoryConvergence(trajs, type = "pairwise.symmetric") # Doesn't work with 3 points ?
-```
+There isn't a lot of variation in the trajectory metrics. All of them have relatively similar directionnality, length, mean angle and mean_speed.
+
+As we saw with the trajectories before, the macrobenthic communities in the Florida Bay have experienced a shift in composition from 1996 and 2000, but this shift has been relatively similar for all stations.
 
 # References
