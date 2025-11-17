@@ -4,8 +4,8 @@ author: Lucien Bastin
 date: 2025-11-07
 format: 
   html:
-    fig-width: 10
-    fig-height: 6
+    fig-width: 12
+    fig-height: 8
 knitr:
   opts_chunk:
     message: FALSE
@@ -15,6 +15,8 @@ lightbox: TRUE
 toc: TRUE
 toc-location: right-body
 df-print: kable
+bibliography: Bibliography/references.bib
+csl: Bibliography/apa.csl
 ---
 
 # Libraries
@@ -127,7 +129,7 @@ stations <- stations |>
   filter(n() == 3)
 ```
 
-We can plot another map to check if everything is good : 
+We can plot another map to check if everything is good :
 
 ```{r}
 ggplot(stations, aes(x = longitude, y = latitude, label = ID)) +
@@ -200,6 +202,11 @@ ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
   geom_point(data = data_env, aes(x = longitude, y = latitude)) +
+  geom_text_repel(
+    data = data_env |> filter(year == "2000"),
+    aes(x = longitude, y = latitude, label = station),
+    seed = 1
+  ) +
   theme_test()
 ```
 
@@ -213,13 +220,24 @@ Take a look at depth and salinity for each station.
 ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
-  geom_point(data = data_env, aes(x = longitude, y = latitude, color = depth), size = 2) +
+  geom_point(
+    data = data_env,
+    aes(x = longitude, y = latitude, color = depth),
+    size = 2
+  ) +
+  geom_text_repel(
+    data = data_env |> filter(year == "2000"),
+    aes(x = longitude, y = latitude, label = station),
+    seed = 1
+  ) +
   scale_color_gradientn(colours = rev(ocean.haline(200)[100:200])) +
   theme_test() +
   guides(
     color = guide_colorbar(reverse = TRUE)
   )
 ```
+
+All stations sampled have quite low depths (between 80cm and 5.8m). The most inland stations (24, 25, 29, 32 and 34) all have very low depths (less than 2m). Other stations have larger depths.
 
 ### Salinity by year
 
@@ -228,13 +246,22 @@ ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
   geom_point(data = data_env, aes(x = longitude, y = latitude, color = salinity), size = 2) +
+  geom_text_repel(
+    data = data_env,
+    aes(x = longitude, y = latitude, label = station),
+    seed = 1
+  ) +
   scale_color_viridis_c() +
-  facet_wrap(vars(year)) +
+  facet_wrap(vars(year), nrow = 3) +
   theme_test() +
   guides(
     color = guide_colorbar(reverse = TRUE)
   )
 ```
+
+Salinities were not recorded for all stations in 1997. For 1996 and 2000, we can observe large salinity differences between the stations. In 1996, stations 29, 32 and 34 have salinities around 25, while all other stations have salinities of 37. In 2000, the same phenomenon is visible for stations 32 and 34, which have salinities of 0 (although this may be du to a field sampling error).
+
+This salinity difference is due to freshwater runoff in the northeast part of the Florida Bay [@kelble_salinity_2007].
 
 ### Relationships between environmental variables
 
@@ -248,6 +275,9 @@ ggpairs(
   theme_test()
 ```
 
+Depth show a negative correlation to longitude, but is not correlated to latitude. Salinity stays constant between the stations for each survey year, except for the three stations in the northeast that have lower salinities (as we saw before).
+Salinity also doesn't vary depending on depth.
+
 ## Species richness and total abundance
 
 ```{r}
@@ -255,6 +285,8 @@ data_abund_pooled <- data_abund |>
   group_by(year, station) |>
   summarize(across(-1, sum))
 ```
+
+Compute species richness and total abundance for each station and add them to the environmental dataframe.
 
 ```{r}
 data_env <- data_env |>
@@ -264,11 +296,18 @@ data_env <- data_env |>
   )
 ```
 
+Now we can make the two plots.
+
 ```{r}
 plot_richness <- ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
   geom_point(data = data_env, aes(x = longitude, y = latitude, color = richness), size = 2) +
+  geom_text_repel(
+    data = data_env,
+    aes(x = longitude, y = latitude, label = station),
+    seed = 1
+  ) +
   scale_color_viridis_c() +
   facet_wrap(vars(year), nrow = 3) +
   theme_test()
@@ -279,6 +318,11 @@ plot_abundance <- ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
   geom_point(data = data_env, aes(x = longitude, y = latitude, color = log(abundance)), size = 2) +
+  geom_text_repel(
+    data = data_env,
+    aes(x = longitude, y = latitude, label = station),
+    seed = 1
+  ) +
   scale_color_viridis_c() +
   facet_wrap(vars(year), nrow = 3) +
   theme_test()
@@ -288,10 +332,13 @@ plot_abundance <- ggplot(map_layer) +
 ggarrange(plot_richness, plot_abundance)
 ```
 
+Specific richness tends to be lower in the northeast stations.
+Total abundance doesn't really show any pattern.
+
 ## Aims of this study
 
-How does the spatial structure of the Florida Bay macrobenthic communities evolve through time ?
-Can we consider the Eastern stations (with the lowest salinity) and the rest of the Bay as two different ecosystems ?
+How does the spatial structure of the Florida Bay macrobenthic communities evolve through time ? 
+Can we observe different communities in the northeast stations (with the lowest salinity) and the rest of the Bay ?
 Has there been a shift in community composition between 1996 and 2000 ?
 
 # Space and time interaction model
@@ -320,9 +367,6 @@ Sort the dataframes so the stations are in order :
 ```{r}
 data_abund <- data_abund |>
   arrange(year, as.numeric(station), replicate)
-
-# data_env <- data_env |>
-#   arrange(year, station, replicate)
 ```
 
 Run the MANOVA :
@@ -341,8 +385,7 @@ Let's look at the results :
 model
 ```
 
-Here we can see that space, time and their interaction all have a significant effect on the community structure.
-We can represent these results with an RDA (here we pool replicates togeteher) :
+Here we can see that space, time and their interaction all have a significant effect on the community structure. We can represent these results with an RDA (here we pool replicates togeteher) :
 
 ```{r}
 rda_spacetime <- rda(
@@ -413,6 +456,14 @@ ggplot() +
   theme_test()
 ```
 
+The first two RDA axes represents 19% of the total variance of the data. We can see that for 1996 and 1997, the sites are really close to eachother.
+
+The RDA1 axis shows time differences between the years 1996-1997 and 2000. We can see that the relative abundance of *Oligochaeta* has decreased in 2000.
+
+We can also see that for each year, two groups of stations appear : the stations 24, 25, 29, 32 and 34 (northeast stations) and the others. This could indicate that the northeast stations harbor different communities compared to the rest of the Florida Bay. For instance, these stations show a high relative abundance of the species *Phascolion strombi*, while the other stations show a low relative abundance for this species.
+
+Furthermore, unlike the *Oliogchaete* whose relative abundance decreases in time, *P. strombi* is always associated to the northeast stations, no matter the year.
+
 ## Quantitative model
 
 To further investigate the effect of space and time, I will consider them as quantitative variables. We can do this by taking the year value for time, and by using the latitude and longitude of the points for space.
@@ -445,11 +496,13 @@ Visualize the results :
 ```{r}
 sp_quant <- which(goodness(rda_quant)[, 2] >= 0.35)
 rda_coords <- extract_rda(rda_quant, select_spe = sp_quant)
+rda_coords$site_scores <- as.data.frame(rda_coords$site_scores) |>
+  mutate(year = data_env$year, station = data_env$station)
 ```
 
 ```{r}
 ggplot() +
-  geom_point(data = rda_coords$site_scores, aes(x = RDA1, y = RDA2)) +
+  geom_point(data = rda_coords$site_scores, aes(x = RDA1, y = RDA2, color = year)) +
   geom_segment(
     data = rda_coords$species_scores,
     aes(
@@ -576,7 +629,7 @@ None of the models are significant, so we can't proceed to selection of the MEMs
 
 ## Clustering analysis
 
-As a backup, we can perform a clustering of the stations each year. This will reveal which stations have similar communities and might reveal spatial structures.
+As a backup, we can perform a clustering of the stations each year. This will reveal which stations have similar communities and might highlight spatial structures.
 
 There are multiple ways to cluster the stations together. We can compute the cophenetic correlation coefficient to find out which one is the "best".
 
@@ -592,6 +645,8 @@ cophenetic_cors <- data.frame(expand.grid(
   arrange(year, method)
 ```
 
+Function to get the Hellinger distance matrix for a year (`data` will be a Hellinger-transformed abundance dataframe).
+
 ```{r}
 hell_dist_year <- function(data, year) {
   # Takes year as 1/2/3 and returns the hellinger distance between the stations
@@ -601,6 +656,8 @@ hell_dist_year <- function(data, year) {
   )
 }
 ```
+
+Now we can compute the cophenetic correlation for each clustering method each year.
 
 ```{r}
 coph <- c()
@@ -656,8 +713,6 @@ for (i in 2:(length(silhouettes_96) - 1)) {
   s <- summary(silhouette(cutree(clust_96, k = i), hell_dist_96))$avg.width
   silhouettes_96[i] <- s
 }
-
-plot(silhouettes_96, type = "h")
 ```
 
 ```{r}
@@ -667,6 +722,8 @@ silhouettes <- data.frame(expand.grid(
 )) |>
   arrange(year, k)
 ```
+
+Compute the silhouette value each year for all possible numbers of clusters (between 2 and 17).
 
 ```{r}
 sil <- c()
@@ -708,23 +765,30 @@ data_clust <- data_env |>
 ```
 
 ```{r}
-ggplot(data_clust, aes(x = longitude, y = latitude, color = factor(cluster))) +
-  geom_point(size = 3) +
-  facet_wrap(vars(year)) +
+ggplot(map_layer) +
+  geom_sf() +
+  coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
+  geom_point(
+    data = data_clust,
+    aes(x = longitude, y = latitude, color = factor(cluster)),
+    size = 3
+  ) +
+  geom_text_repel(
+    data = data_env,
+    aes(x = longitude, y = latitude, label = station),
+    seed = 1
+  ) +
+  facet_wrap(vars(year), nrow = 3) +
   theme_test()
 ```
 
 The clusterings may reveal spatial structures (since stations close to eachother tend to be in the same clusters).
+For instance, stations [29, 32, 34], [7, 8], [20, 23, 26, 28], [1, 5, 6, 14] and [11, 18] are always in the same cluster each year.
+The northeast stations (29, 32, 34) therefore present different communities compared to the rest of the Florida Bay.
 
 # Evolution of the communities through time
 
-To define ecological trajectories, we first need the entities (stations) and times (years).
-
-```{r}
-data_env$station
-data_env$year
-```
-
+To define ecological trajectories, we need the entities (stations) and times (years).
 For the distance matrix, we will use the hellinger distance between the sites
 
 ```{r}
@@ -732,13 +796,15 @@ data_abund_hell <- decostand(data_abund_pooled[-c(1, 2)], "hellinger")
 dist_hell <- vegdist(data_abund_hell, "euclidean")
 ```
 
-Make a color palette : 
+Make a color palette :
 
 ```{r}
 station_cols <- data.frame(
-  station = unique(data_env$station),
-  col = pals::alphabet(18)
-)
+  station = sort(as.numeric(unique(data_env$station))),
+  col = viridis(18) #pals::alphabet(18)
+) |>
+  mutate(station = as.character(station)) |>
+  arrange(station)
 ```
 
 Now we can define the trajectories using package `ecotraj`.
@@ -754,7 +820,9 @@ trajs <- defineTrajectories(
 We can represent the trajectories in 2D space using a PCoA :
 
 ```{r}
-pcoa <- trajectoryPCoA(trajs, traj.colors = station_cols$col, lwd = 2)
+par(mfrow = c(1, 1))
+pcoa <- trajectoryPCoA(trajs, traj.colors = station_cols$col, lwd = 2, length = 0.1)
+text(pcoa$points[1:18, 1], pcoa$points[1:18, 2], unique(data_env$station))
 station_cols <- station_cols |> arrange(as.numeric(station))
 legend(
   x = 0.6,
@@ -764,15 +832,17 @@ legend(
   bty = "n",
   lty = 1,
   lwd = 3,
-  y.intersp = 0.5
+  y.intersp = 0.6
 )
 ```
+
+The first two PCoA axes account for 20% of the total variance of the data. All trajectories follow the same pattern : a shift on PCoA2 (negative or positive) followed by a shift towards positive values of PCoA1.
+We can also see that the trajectories of the northeast stations (24, 25, 29, 32, 34) are separated from the others on the PCoA space, but they follow the same general trend.
 
 Compute trajectory metrics :
 
 ```{r}
 metrics <- trajectoryMetrics(trajs) |>
-  mutate(cluster = )
   pivot_longer(length:internal_variance, names_to = "metric", values_to = "value") |>
   mutate(trajectory = factor(trajectory, levels = order(as.numeric(trajectory))))
 ```
@@ -787,3 +857,5 @@ ggplot(metrics, aes(x = trajectory, y = value)) +
 ```{r}
 trajectoryConvergence(trajs, type = "pairwise.symmetric") # Doesn't work with 3 points ?
 ```
+
+# References
