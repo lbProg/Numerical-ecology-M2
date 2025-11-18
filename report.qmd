@@ -1,7 +1,7 @@
 ---
 title: Numerical ecology report
 author: Lucien Bastin
-date: 2025-11-07
+date: 2025-11-18
 format: 
   html:
     fig-width: 12
@@ -1028,5 +1028,11 @@ The ecological trajectories between 1996 and 2000 show a linear trend with incre
 To conclude, we have shown that space, time and the interaction between them all significantly affect the community composition of the macrobenthic fauna in the Florida Bay. Community composition differed along a northeast/southwest gradient, mainly so between the northeast inland stations, characterized by species such as *Phascolion strombi*, and the southwest, more offshore stations. This spatial structure could be linked to different environmental conditions such as salinity, which is lower in the northeast stations.
 
 The communities have experienced an ecological shift between 1996, 1997 and 2000. Species such as *Cirrophorus lyra* and *Eupolymnia nebulosa* have become more abundant, although this shift did not distub the northeast/southwest structuring of the communities. Through the years, all stations have experienced a relatively similar ecological shift, but the amplitude of this shift has been more important in the northeast stations.
+
+# Session info
+
+```{r}
+sessionInfo()
+```
 
 # References
