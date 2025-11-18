@@ -50,7 +50,7 @@ source("R/extract_rda.R")
 
 ## Initial dataset
 
-The dataset used here can be found at (https://products.coastalscience.noaa.gov/nbi/data/project_data.aspx?project=124)[].
+The dataset used here can be found at <https://products.coastalscience.noaa.gov/nbi/data/project_data.aspx?project=124>.
 
 Variables we have access to :
 
@@ -313,8 +313,7 @@ ggpairs(
   theme_test()
 ```
 
-Depth show a negative correlation to longitude, but is not correlated to latitude. Salinity stays constant between the stations for each survey year, except for the three stations in the northeast that have lower salinities (as we saw before).
-Salinity also doesn't vary depending on depth.
+Depth show a negative correlation to longitude, but is not correlated to latitude. Salinity stays constant between the stations for each survey year, except for the three stations in the northeast that have lower salinities (as we saw before). Salinity also doesn't vary depending on depth.
 
 ## Species richness and total abundance
 
@@ -382,8 +381,7 @@ plot_abundance <- ggplot(map_layer) +
 ggarrange(plot_richness, plot_abundance)
 ```
 
-Specific richness tends to be lower in the northeast stations.
-Total abundance doesn't really show any pattern.
+Specific richness tends to be lower in the northeast stations. Total abundance doesn't really show any pattern.
 
 ## Aims of this study
 
@@ -391,11 +389,11 @@ As we saw, the stations in the Florida Bay present large salinity differences. T
 
 This study will attempt to describe the spatiotemporal structure of the macrobenthic communities in the Florida Bay between 1996 and 2000. To do this, we will try to answer the following questions :
 
-- Are there spatial structures in the Florida Bay macrobenthic communities, and do they evolve through time ?
+-   Are there spatial structures in the Florida Bay macrobenthic communities, and do they evolve through time ?
 
-- Can we observe different communities in the northeast stations (with the lowest salinity) and the rest of the Bay ?
+-   Can we observe different communities in the northeast stations (with the lowest salinity) and the rest of the Bay ?
 
-- Has there been a shift in community composition between 1996 and 2000, and if yes, has it been the same everywhere ?
+-   Has there been a shift in community composition between 1996 and 2000, and if yes, has it been the same everywhere ?
 
 # Space and time interaction model
 
@@ -872,16 +870,13 @@ ggplot(map_layer) +
   guides(color = "none")
 ```
 
-The clusterings may reveal spatial structures (since stations close to eachother tend to be in the same clusters).
-For instance, stations [29, 32, 34], [7, 8], [23, 26, 28] and [1, 5, 6, 14] are always in the same cluster each year.
-The northeast stations (29, 32, 34) could therefore present different communities compared to the rest of the Florida Bay.
+The clusterings may reveal spatial structures (since stations close to eachother tend to be in the same clusters). For instance, stations \[29, 32, 34\], \[7, 8\], \[23, 26, 28\] and \[1, 5, 6, 14\] are always in the same cluster each year. The northeast stations (29, 32, 34) could therefore present different communities compared to the rest of the Florida Bay.
 
 # Evolution of the communities through time
 
 ## Ecological trajectories
 
-To define ecological trajectories, we need the entities (stations) and times (years).
-For the distance matrix, we will use the hellinger distance between the sites
+To define ecological trajectories, we need the entities (stations) and times (years). For the distance matrix, we will use the hellinger distance between the sites
 
 ```{r}
 data_abund_hell <- decostand(data_abund_pooled[-c(1, 2, 3)], "hellinger")
@@ -976,7 +971,7 @@ metrics <- trajectoryMetrics(trajs) |>
   )
 ```
 
-With only three dates, length and mean speed are equal, and directionnality and mean angle have opposite variations. So we can simply use length and directionality. 
+With only three dates, length and mean speed are equal, and directionnality and mean angle have opposite variations. So we can simply use length and directionality.
 
 We can check for linear trends :
 
