@@ -94,6 +94,8 @@
     columns: (75%, 25%),
     image("Images/clustering.svg"),
     [
+      - Clusters may highlight spatial structures
+
       - Different clusters along northeast/southwest axis
 
       - Different clusters each year
