@@ -868,6 +868,8 @@ The northeast stations (29, 32, 34) could therefore present different communitie
 
 # Evolution of the communities through time
 
+## Ecological trajectories
+
 To define ecological trajectories, we need the entities (stations) and times (years).
 For the distance matrix, we will use the hellinger distance between the sites
 
@@ -900,7 +902,7 @@ trajs <- defineTrajectories(
 We can represent the trajectories in 2D space using a PCoA :
 
 ```{r}
-#| fig-cap: Ecological trajectories of the 18 stations of the Florida Bay between 1996 and 2000, represented on the two first PCoA axes.
+#| fig-cap: Ecological trajectories of the 18 stations of the Florida Bay between 1996 and 2000, represented on the two first PCoA axes
 
 par(mfrow = c(1, 1))
 pcoa <- trajectoryPCoA(trajs, traj.colors = station_cols$col, lwd = 2, length = 0.1)
@@ -920,11 +922,17 @@ legend(
 
 The first two PCoA axes account for 21% of the total variance of the data. Most trajectories seem to follow the same pattern : they move towards negative values of PCoA1.
 
-However, some trajectories like those of stations 5, 11, 14, 23 and 26 show a move towards positive values of PCoA1 between 1997 and 2000
+However, some trajectories like those of stations 5, 11, 14, 23 and 26 show a move towards positive values of PCoA1 between 1997 and 2000.
 
 We can also see that the trajectories of the northeast stations (24, 25, 29, 32, 34) are separated from the others on the PCoA space, but they follow the same general movement.
 
-Compute trajectory metrics for each replicate :
+The macrobenthic communities in the Florida Bay have therefore experienced a shift in composition from 1996 to 2000, but this shift appears to have been relatively similar for all stations.
+
+## Trajectory metrics
+
+In order to check if all trajectories are similar, we can use trajectory metrics such as directionality, length, mean angle etc.
+
+Here we will redefine our trajectories to include the replicates from the original data. This will allow us to test for linear relationships later.
 
 ```{r}
 data_abund_hell <- decostand(data_abund[-c(1, 2, 3)], "hellinger")
@@ -938,6 +946,8 @@ trajs <- defineTrajectories(
   times = rep(as.numeric(data_env$year), each = 3)
 )
 ```
+
+Compute the trajectory metrics :
 
 ```{r}
 metrics <- trajectoryMetrics(trajs) |>
@@ -956,35 +966,59 @@ metrics <- trajectoryMetrics(trajs) |>
   )
 ```
 
-With only three dates, length = mean_speed and directionnality = - mean_angle.
+With only three dates, length and mean speed are equal, and directionnality and mean angle have opposite variations. So we can simply use length and directionality. 
+
+We can check for linear trends :
 
 ```{r}
 metrics_model <- metrics |>
   filter(metric %in% c("directionality", "length"))
+  
+metrics_model_data <- metrics_model |>
+  pivot_wider(
+    names_from = metric,
+    values_from = value
+  )
 
-ggplot(metrics_model, aes(x = longitude, y = value)) +
+summary(lm(directionality ~ longitude, data = metrics_model_data))
+summary(lm(length ~ longitude, data = metrics_model_data))
+summary(lm(directionality ~ latitude, data = metrics_model_data))
+summary(lm(length ~ latitude, data = metrics_model_data))
+```
+
+Trajectory length shows a significant positive linear correlation with both longitude and latitude. We can plot these results :
+
+```{r}
+metrics_model <- metrics_model |>
+  filter(metric == "length")
+
+lon_model_plot <- ggplot(metrics_model, aes(x = longitude, y = value)) +
   geom_point() +
-  facet_wrap(vars(metric), scales = "free") +
+  geom_abline(slope = 0.2614, intercept = 23.4171, color = "red") +
+  annotate("text", x = -80.65, y = 1.75, label = paste("slope =", "0.26")) +
+  labs(y = "Trajectory length") +
   theme_test()
 
-ggplot(metrics_model, aes(x = latitude, y = value)) +
+lat_model_plot <- ggplot(metrics_model, aes(x = latitude, y = value)) +
   geom_point() +
-  facet_wrap(vars(metric), scales = "free") +
+  geom_abline(slope = 0.4175, intercept = -8.1664, color = "red") +
+  annotate("text", x = 25.11, y = 1.75, label = paste("slope =", "0.42")) +
+  labs(y = "Trajectory length") +
   theme_test()
 ```
 
 ```{r}
-metrics_model_data <- pivot_wider(
-  metrics,
-  names_from = metric,
-  values_from = value
-)
+#| fig-cap: Significant linear relationships between the trajectory lengths of the 18 Florida Bay stations and their longitude/latitude
 
-summary(lm(length ~ latitude, data = metrics_model_data))
+ggarrange(lon_model_plot, lat_model_plot)
 ```
 
-There isn't a lot of variation in the trajectory metrics. All of them have relatively similar directionnality, length, mean angle and mean_speed.
+The ecological trajectories between 1996 and 2000 show a linear trend with increasing values of trajectory length to the northeast. This means that the northeast stations have experienced a more important ecological shift than the stations in the southwest.
 
-As we saw with the trajectories before, the macrobenthic communities in the Florida Bay have experienced a shift in composition from 1996 and 2000, but this shift has been relatively similar for all stations.
+# Conclusion
+
+To conclude, we have shown that space, time and the interaction between them all significantly affect the community composition of the macrobenthic fauna in the Florida Bay. Community composition differed along a northeast/southwest gradient, mainly so between the northeast inland stations, characterized by species such as *Phascolion strombi*, and the southwest, more offshore stations.
+
+The communities have experienced an ecological shift between 1996, 1997 and 2000. Species such as *Cirrophorus lyra* and *Eupolymnia nebulosa* have become more abundant, although this shift did not distub the northeast/southwest structuring of the communities. Through the years, all stations have experienced a relatively similar ecological shift, but the amplitude of this shift has been more important in the northeast stations.
 
 # References
