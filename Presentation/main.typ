@@ -17,7 +17,7 @@
   info: [#link("https://github.com/lbProg/Numerical-ecology-M2")],
 )
 
-#slide[
+#slide(title: [Study site])[
   #grid(
     columns: (75%, 25%),
     gutter: 5%,
