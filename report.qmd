@@ -389,7 +389,7 @@ As we saw, the stations in the Florida Bay present large salinity differences. T
 
 This study will attempt to describe the spatiotemporal structure of the macrobenthic communities in the Florida Bay between 1996 and 2000. To do this, we will try to answer the following questions :
 
-- How does the spatial structure of the Florida Bay macrobenthic communities evolve through time ?
+- Are there spatial structures in the Florida Bay macrobenthic communities, and do they evolve through time ?
 
 - Can we observe different communities in the northeast stations (with the lowest salinity) and the rest of the Bay ?
 

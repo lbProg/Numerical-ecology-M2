@@ -47,7 +47,7 @@
   #v(10%)
 
   #text(20pt)[
-    + How does the spatial structure of the Florida Bay macrobenthic communities evolve through time ?
+    + Are there spatial structures in the Florida Bay macrobenthic communities, and do they evolve through time ?
 
     + Can we observe different communities in the northeast stations (with the lowest salinity) and the rest of the Bay ?
 
