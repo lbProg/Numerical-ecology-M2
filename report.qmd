@@ -50,6 +50,8 @@ source("R/extract_rda.R")
 
 ## Initial dataset
 
+The dataset used here can be found at (https://products.coastalscience.noaa.gov/nbi/data/project_data.aspx?project=124)[].
+
 Variables we have access to :
 
 -   Station
