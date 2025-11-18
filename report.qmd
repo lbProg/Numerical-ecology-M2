@@ -110,6 +110,8 @@ stations <- data |>
 Plot a map for each survey year :
 
 ```{r}
+#| fig-cap: Positions of all the stations sampled in 1996, 1997 and 2000
+
 ggplot(stations, aes(x = longitude, y = latitude, label = ID)) +
   geom_text() +
   facet_wrap(vars(studyName)) +
@@ -129,6 +131,8 @@ stations <- stations |>
 We can plot another map to check if everything is good :
 
 ```{r}
+#| fig-cap: Positions of the 18 stations that were sampled every year
+
 ggplot(stations, aes(x = longitude, y = latitude, label = ID)) +
   geom_text() +
   facet_wrap(vars(studyName)) +
@@ -208,6 +212,8 @@ map_layer <- ne_countries(country = "united states of america", scale = "large")
 ```
 
 ```{r}
+#| fig-cap: Map of the 18 stations sampled in 1996, 1997 and 2000
+
 ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
@@ -227,6 +233,8 @@ Take a look at depth and salinity for each station.
 ### Depths
 
 ```{r}
+#| fig-cap: Map of the 18 stations sampled each year. The depths measured in 2000 are displayed in color
+
 ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
@@ -241,6 +249,7 @@ ggplot(map_layer) +
     seed = 1
   ) +
   scale_color_gradientn(colours = rev(ocean.haline(200)[100:200])) +
+  labs(color = "Depth (m)") +
   theme_test() +
   guides(
     color = guide_colorbar(reverse = TRUE)
@@ -252,10 +261,16 @@ All stations sampled have quite low depths (between 80cm and 5.8m). The most inl
 ### Salinity by year
 
 ```{r}
+#| fig-cap: Salinities measured at each station in 1996, 1997 and 2000
+
 ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
-  geom_point(data = data_env, aes(x = longitude, y = latitude, color = salinity), size = 2) +
+  geom_point(
+    data = data_env,
+    aes(x = longitude, y = latitude, color = salinity),
+    size = 2
+  ) +
   geom_text_repel(
     data = data_env,
     aes(x = longitude, y = latitude, label = station),
@@ -263,6 +278,7 @@ ggplot(map_layer) +
   ) +
   scale_color_viridis_c() +
   facet_wrap(vars(year), nrow = 3) +
+  labs(color = "Salinity") +
   theme_test() +
   guides(
     color = guide_colorbar(reverse = TRUE)
@@ -276,6 +292,8 @@ This salinity difference is due to freshwater runoff in the northeast part of th
 ### Relationships between environmental variables
 
 ```{r}
+#| fig-cap: Relationships between the four quantitative variables of the environmental dataframe
+
 ggpairs(
   data_env,
   aes(color = year, fill = year, alpha = 0.5),
@@ -312,7 +330,11 @@ Now we can make the two plots.
 plot_richness <- ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
-  geom_point(data = data_env, aes(x = longitude, y = latitude, color = richness), size = 2) +
+  geom_point(
+    data = data_env,
+    aes(x = longitude, y = latitude, color = richness),
+    size = 2
+  ) +
   geom_text_repel(
     data = data_env,
     aes(x = longitude, y = latitude, label = station),
@@ -320,6 +342,7 @@ plot_richness <- ggplot(map_layer) +
   ) +
   scale_color_viridis_c() +
   facet_wrap(vars(year), nrow = 3) +
+  labs(color = "Richness") +
   theme_test()
 ```
 
@@ -327,7 +350,11 @@ plot_richness <- ggplot(map_layer) +
 plot_abundance <- ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
-  geom_point(data = data_env, aes(x = longitude, y = latitude, color = log(abundance)), size = 2) +
+  geom_point(
+    data = data_env,
+    aes(x = longitude, y = latitude, color = log(abundance)),
+    size = 2
+  ) +
   geom_text_repel(
     data = data_env,
     aes(x = longitude, y = latitude, label = station),
@@ -335,10 +362,13 @@ plot_abundance <- ggplot(map_layer) +
   ) +
   scale_color_viridis_c() +
   facet_wrap(vars(year), nrow = 3) +
+  labs(color = "log(Abundance)") +
   theme_test()
 ```
 
 ```{r}
+#| fig-cap: Maps of the specific richness and abundance (displayed in log scale) of the stations
+
 ggarrange(plot_richness, plot_abundance)
 ```
 
@@ -350,9 +380,12 @@ Total abundance doesn't really show any pattern.
 As we saw, the stations in the Florida Bay present large salinity differences. This could strolngly affect the benthic community composition. We could expect to observe some spatial differences in the Bay.
 
 This study will attempt to answer the following questions :
-  - How does the spatial structure of the Florida Bay macrobenthic communities evolve through time ?
-  - Can we observe different communities in the northeast stations (with the lowest salinity) and the rest of the Bay ?
-  - Has there been a shift in community composition between 1996 and 2000, and if yes, has it been the same everywhere ?
+
+- How does the spatial structure of the Florida Bay macrobenthic communities evolve through time ?
+
+- Can we observe different communities in the northeast stations (with the lowest salinity) and the rest of the Bay ?
+
+- Has there been a shift in community composition between 1996 and 2000, and if yes, has it been the same everywhere ?
 
 # Space and time interaction model
 
@@ -416,6 +449,7 @@ rda_coords$site_scores <- as.data.frame(rda_coords$site_scores) |>
 
 ```{r}
 #| code-fold: true
+#| fig-cap: RDA of the Hellinger-transformed abundance data of the macrobenthic communities of the Florida Bay, constrained by the stations and the year as qualitative variables. Station and year centroids are represented by blue points.
 
 ggplot() +
   geom_point(data = rda_coords$site_scores, aes(x = RDA1, y = RDA2, color = year)) +
@@ -458,7 +492,7 @@ ggplot() +
   annotate(
     "text",
     x = -0.5,
-    y = -0.5,
+    y = -0.4,
     label = paste0(
       "F = ",
       rda_coords$F,
@@ -468,6 +502,7 @@ ggplot() +
       rda_coords$r_sq_adj
     )
   ) +
+  labs(color = "Year") +
   theme_test()
 ```
 
@@ -521,6 +556,7 @@ rda_coords$site_scores <- as.data.frame(rda_coords$site_scores) |>
 
 ```{r}
 #| code-fold: true
+#| fig-cap: RDA of the Hellinger-transformed abundance data of the macrobenthic communities of the Florida Bay, constrained by the stations coordinates and the year as quantitative variables.
 
 ggplot() +
   geom_point(
@@ -576,8 +612,8 @@ ggplot() +
   ) +
   annotate(
     "text",
-    x = -0.5,
-    y = -0.5,
+    x = -0.4,
+    y = -0.4,
     label = paste0(
       "F = ",
       rda_coords$F,
@@ -587,6 +623,7 @@ ggplot() +
       rda_coords$r_sq_adj
     )
   ) +
+  labs(color = "Year") +
   theme_test()
 ```
 
@@ -619,9 +656,12 @@ data_MEM <- data_env |>
 ```
 
 ```{r}
+#| fig-cap: Maps of the 7 db-MEM variables found by the dm-MEM analysis. Positive values are represented in blue and negative ones in red. The absolute value at each station is represented by the size of the associated point.
+
 ggplot(data_MEM, aes(x = longitude, y = latitude, size = abs(value), color = factor(sign(value)))) +
   geom_point() +
   facet_wrap(vars(MEM)) +
+  labs(size = "Value", color = "Sign") +
   theme_test()
 ```
 
@@ -731,6 +771,8 @@ clust_00 <- hclust(hell_dist_00, method = "average")
 ```
 
 ```{r}
+#| fig-cap: Dendrograms of the optimal clustering (average) of the stations for each sampling year.
+
 par(mfrow = c(1, 3))
 plot(clust_96, labels = data_env$station[1:18])
 plot(clust_97, labels = data_env$station[1:18])
@@ -774,9 +816,12 @@ silhouettes$silhouette <- sil
 ```
 
 ```{r}
+#| fig-cap: Silhouette values computed for every possible number of clusters on the station clusterings each year
+
 ggplot(silhouettes, aes(x = k, y = sil)) +
   geom_bar(stat = "identity", width = 0.5) +
   facet_wrap(vars(year)) +
+  labs(x = "Number of clusters", y = "Silhouette value") +
   theme_test()
 ```
 
@@ -797,6 +842,8 @@ data_clust <- data_env |>
 ```
 
 ```{r}
+#| fig-cap: Maps of the stations each year, colored by their cluster. Clusters were found by cutting the clustering of the stations in the optimal number of clusters found with the silhouette metric. Cluster numbers are only valid within the same year.
+
 ggplot(map_layer) +
   geom_sf() +
   coord_sf(xlim = c(-80, -82), ylim = c(24.5, 25.5), expand = c(0, 0)) +
@@ -811,6 +858,7 @@ ggplot(map_layer) +
     seed = 1
   ) +
   facet_wrap(vars(year), nrow = 3) +
+  labs(color = "Cluster") +
   theme_test()
 ```
 
@@ -852,6 +900,8 @@ trajs <- defineTrajectories(
 We can represent the trajectories in 2D space using a PCoA :
 
 ```{r}
+#| fig-cap: Ecological trajectories of the 18 stations of the Florida Bay between 1996 and 2000, represented on the two first PCoA axes.
+
 par(mfrow = c(1, 1))
 pcoa <- trajectoryPCoA(trajs, traj.colors = station_cols$col, lwd = 2, length = 0.1)
 text(pcoa$points[1:18, 1], pcoa$points[1:18, 2], unique(data_env$station))
@@ -878,14 +928,35 @@ Compute trajectory metrics :
 
 ```{r}
 metrics <- trajectoryMetrics(trajs) |>
-  pivot_longer(length:internal_variance, names_to = "metric", values_to = "value") |>
-  mutate(trajectory = factor(trajectory, levels = order(as.numeric(trajectory))))
+  mutate(
+    longitude = data_env$longitude[1:18],
+    latitude = data_env$latitude[1:18]
+  ) |>
+  pivot_longer(
+    length:internal_variance,
+    names_to = "metric",
+    values_to = "value"
+  ) |>
+  mutate(
+    trajectory = factor(trajectory, levels = order(as.numeric(trajectory)))
+  )
 ```
 
 ```{r}
+ggplot(metrics, aes(x = longitude, y = latitude, color = value)) +
+  geom_point() +
+  facet_wrap(vars(metric), scales = "free") +
+  scale_color_viridis_c() +
+  theme_test()
+```
+
+```{r}
+#| fig-cap: Trajectory metrics computed from the ecological trajectories of the 18 Florida Bay stations
+
 ggplot(metrics, aes(x = trajectory, y = value)) +
   geom_bar(stat = "identity") +
   facet_wrap(vars(metric), scales = "free") +
+  labs(x = "Trajectory", y = "Metric value") +
   theme_test()
 ```
 
