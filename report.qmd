@@ -539,11 +539,11 @@ data_abund_hell <- decostand(data_abund_pooled[-c(1, 2)], "hellinger")
 ```{r}
 forward.sel(
   data_abund_hell,
-  data_env |> select(latitude, longitude, year_quant, depth)
+  data_env |> select(latitude, longitude, year_quant)
 )
 ```
 
-The best model has all four variables.
+The best model has all three variables.
 
 ```{r}
 rda_quant <- rda(
